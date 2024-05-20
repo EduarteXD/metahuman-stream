@@ -28,8 +28,11 @@ imageio-ffmpeg
 
 transformers
 edge_tts
-flask
 flask_sockets
 opencv-python-headless
 aiortc
 aiohttp_cors
+
+markupsafe==2.0.1
+flask==1.1.4
+Werkzeug==1.0.1

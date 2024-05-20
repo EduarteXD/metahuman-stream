@@ -1,13 +1,7 @@
-# Copyright (c) 2020-2022, NVIDIA CORPORATION.  All rights reserved.
-#
-# NVIDIA CORPORATION and its licensors retain all intellectual property
-# and proprietary rights in and to this software, related documentation
-# and any modifications thereto.  Any use, reproduction, disclosure or
-# distribution of this software and related documentation without an express
-# license agreement from NVIDIA CORPORATION is strictly prohibited.
-
-ARG BASE_IMAGE=nvcr.io/nvidia/cuda:11.3.1-cudnn8-devel-ubuntu20.04
+ARG BASE_IMAGE=nvcr.io/nvidia/cuda:11.7.1-cudnn8-devel-ubuntu20.04
 FROM $BASE_IMAGE
+
+VOLUME [ "/metahuman-stream" ]
 
 RUN apt-get update -yq --fix-missing \
  && DEBIAN_FRONTEND=noninteractive apt-get install -yq --no-install-recommends \
@@ -16,14 +10,10 @@ RUN apt-get update -yq --fix-missing \
     cmake \
     curl \
     git \
-    vim
-
-#ENV PYTHONDONTWRITEBYTECODE=1
-#ENV PYTHONUNBUFFERED=1
-
-# nvidia-container-runtime
-#ENV NVIDIA_VISIBLE_DEVICES all
-#ENV NVIDIA_DRIVER_CAPABILITIES compute,utility,graphics
+    vim \
+    ffmpeg \
+    libsm6 \
+    libxext6
 
 SHELL ["/bin/bash", "-i", "-c"] 
 
@@ -31,33 +21,36 @@ RUN wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh
 RUN sh Miniconda3-latest-Linux-x86_64.sh -b -u -p ~/miniconda3
 RUN ~/miniconda3/bin/conda init
 RUN source ~/.bashrc
-RUN conda create -n metahuman -y
-# RUN conda activate metahuman
+RUN rm Miniconda3-latest-Linux-x86_64.sh
 
 # SHELL ["/bin/bash", "-i", "-c", "conda", "run", "-n", "metahuman", "/bin/bash", "-c"]
 
-RUN pip config set global.index-url https://mirrors.aliyun.com/pypi/simple/
+# RUN pip config set global.index-url https://mirrors.aliyun.com/pypi/simple/
 # install depend
-RUN conda install python==3.10 pytorch==1.12.1 torchvision==0.13.1 cudatoolkit=11.3 -c pytorch -y
-Copy requirements.txt ./
+# RUN conda install python==3.10 pytorch==1.12.1 torchvision==0.13.1 cudatoolkit=11.3 -c pytorch -y
+RUN conda install nvidia/label/cuda-11.7.1::libcufft nvidia/label/cuda-11.7.1::libcublas nvidia/label/cuda-11.7.1::libnvjpeg nvidia/label/cuda-11.7.1::libcusparse nvidia/label/cuda-11.7.1::cuda-cudart conda-forge::libnvjitlink-dev nvidia/label/cuda-11.7.1::cuda-toolkit -y
+RUN conda install python==3.10 pytorch==1.13.1 torchvision==0.14.1 -c pytorch -y
+COPY requirements.txt ./
 RUN pip install -r requirements.txt
 
-# additional libraries
-RUN pip install "git+https://github.com/facebookresearch/pytorch3d.git"
+RUN conda install -c fvcore -c iopath -c conda-forge fvcore iopath -y
+RUN conda install -c bottler nvidiacub -y
+# RUN pip install "git+https://github.com/facebookresearch/pytorch3d.git"
+RUN pip install --no-index --no-cache-dir pytorch3d -f https://dl.fbaipublicfiles.com/pytorch3d/packaging/wheels/py310_cu117_pyt1131/download.html
+
 RUN pip install tensorflow-gpu==2.8.0
 
 RUN pip uninstall protobuf -y
 RUN pip install protobuf==3.20.1
 
-RUN conda install ffmpeg -y
+# RUN conda install ffmpeg -y
 
-RUN apt-get update && apt-get install ffmpeg libsm6 libxext6  -y
-# Copy ../python_rtmpstream /python_rtmpstream
-# WORKDIR /python_rtmpstream/python
-# RUN pip install .
+RUN echo 'export LD_LIBRARY_PATH="$CONDA_PREFIX/lib"' >> ~/.bashrc
+RUN ln -s $CONDA_PREFIX/lib/libcudart.so /usr/lib/libcudart.so
 
 EXPOSE 8010
 
-Copy ./ /metahuman-stream
+COPY ./ /metahuman-stream
 WORKDIR /metahuman-stream
+
 CMD ["/bin/bash", "-i", "-c", "python app.py"]

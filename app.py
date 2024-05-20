@@ -420,7 +420,7 @@ if __name__ == '__main__':
     # parser.add_argument('--asr_model', type=str, default='facebook/hubert-large-ls960-ft')
 
     parser.add_argument('--transport', type=str, default='rtcpush') #rtmp webrtc rtcpush
-    parser.add_argument('--push_url', type=str, default='http://localhost:1985/rtc/v1/whip/?app=live&stream=livestream') #rtmp://localhost/live/livestream
+    parser.add_argument('--push_url', type=str, default='http://host.docker.internal:1985/rtc/v1/whip/?app=live&stream=livestream') #rtmp://localhost/live/livestream
 
     parser.add_argument('--asr_save_feats', action='store_true')
     # audio FPS
